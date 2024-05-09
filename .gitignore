@@ -159,6 +159,6 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 .idea/
 
-# Results
-results*
-mapc_mab/plots/debug_agent_notebook.ipynb
+# Sandbox notebooks
+/.ipynb_checkpoints
+/sdbx.ipynb

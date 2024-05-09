@@ -1,8 +1,9 @@
+from utils.algorithms import *
 
 
 class PKE:
     
-    def __init__(self):
+    def __init__(self, **constants):
         self.keygen = self.KeyGen
         self.encrypt = self.Enc
         self.decrypt = self.Dec
