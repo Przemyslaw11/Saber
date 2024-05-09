@@ -1,0 +1,23 @@
+[project]
+name = "saber"
+version = "0.0.1"
+description = "Python implementation of the SABER algorithm"
+
+readme = "README.md"
+license = {file = "LICENSE"}
+
+authors = [
+  {name = "Wojciech Ciężobka", email = "wojciech.ciezobka@agh.edu.pl"},
+  {name = "Przemysław Spyra", email = "pspyra@student.agh.edu.pl"},
+]
+
+requires-python = ">=3.9"
+dependencies = [
+]
+
+[tool.setuptools]
+packages = ["saber"]
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
