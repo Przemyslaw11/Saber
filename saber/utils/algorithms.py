@@ -1,80 +1,16 @@
-from typing import Dict, List, Union
+from typing import List
 
 import numpy as np
+from secrets import token_bytes
+from hashlib import sha3_256, sha3_512, shake_128
 
-
-class Polynomial():
-    """
-    Polynomial class to represent elements in the quotient ring. The coefficients of the polynomial are stored by the ascending order of the power of x. So the polynomial x^2 + 3 is represented as [3, 0, 1].
-    """
-
-    def __init__(self, coeffs: Union[Dict, List], N: int):
-        self.N = N
-        self.n = 256
-
-        if isinstance(coeffs, dict):
-            # Initialize the coefficients array
-            input_coeffs = np.zeros(max(coeffs.keys()) + 1, dtype=int)
-            for key, value in coeffs.items():
-                input_coeffs[key] = value
-        elif isinstance(coeffs, list):
-            input_coeffs = np.array(coeffs)
-
-        # Set the coefficients
-        self._set_coeffs(input_coeffs)
-    
-    def _set_coeffs(self, input_coeffs: np.ndarray):
-        
-        # Perform the polynomial division
-        divisor = np.poly1d([1] + [0] * (self.n - 1) + [1])
-        _, r = np.polydiv(np.poly1d(np.flip(input_coeffs)), divisor)
-
-        # Keep the coefficients within the modulus range [0, N-1]
-        r = np.poly1d(r.c % self.N)
-
-        # Store the coefficients
-        self.coeffs = np.zeros(self.n, dtype=int)
-        for i, c in enumerate(np.flip(r.c)):
-            self.coeffs[i] = c
-        
-        # Set the polynomial
-        self.np_poly1d = np.poly1d(np.flip(self.coeffs))
-
-    # Overload the getter method
-    def __getitem__(self, key) -> int:
-        assert key < self.n, "Index out of bounds. Index should be strictly less than the degree of the polynomial."
-        return self.coeffs[key]
-    
-    def __str__(self) -> str:
-        return str(self.np_poly1d)
-
-
-def int2bytes(n: int, byte_length: int) -> bytes:
-    return n.to_bytes(byte_length, 'big')
-
-def int2bits(n: int, bit_length: int) -> np.ndarray:
-    result = np.zeros(bit_length, dtype=np.uint8)
-    unpacked = np.unpackbits(np.frombuffer(int2bytes(n, n.bit_length()), dtype=np.uint8))[-bit_length:]
-
-    if unpacked.size > 0:
-        result[-len(unpacked):] = unpacked
-    
-    return result
-
-def bytes2bits(b: bytes) -> np.ndarray:
-    return np.unpackbits(np.frombuffer(b, dtype=np.uint8))
-
-def bytes2int(b: bytes) -> int:
-    return int.from_bytes(b, 'big')
-
-def bits2int(bits: np.ndarray) -> int:
-    return np.sum(bits * 2**np.arange(len(bits) - 1, -1, -1))
-
-def bits2bytes(bits: np.ndarray) -> bytes:
-    return np.packbits(bits).tobytes()
+from utils.polynomial import Polynomial
+from utils.binary_utils import *
 
 
 def shiftleft(pin: Polynomial, s: int) -> Polynomial:
+    "Algorithm 7 from the [SABER](https://www.esat.kuleuven.be/cosic/pqcrypto/saber/files/saberspecround3.pdf#page=25.36) specification."
+
     N = pin.N
     pin_coeffs = pin.coeffs
     for i in range(256):
@@ -84,6 +20,8 @@ def shiftleft(pin: Polynomial, s: int) -> Polynomial:
 
 
 def shiftright(pin: Polynomial, s: int) -> Polynomial:
+    "Algorithm 8 from the [SABER](https://www.esat.kuleuven.be/cosic/pqcrypto/saber/files/saberspecround3.pdf#page=25.36) specification."
+
     N = pin.N
     pin_coeffs = pin.coeffs
     for i in range(256):
@@ -93,6 +31,8 @@ def shiftright(pin: Polynomial, s: int) -> Polynomial:
 
 
 def bs2pol(bs: bytes) -> Polynomial:
+    "Algorithm 9 from the [SABER](https://www.esat.kuleuven.be/cosic/pqcrypto/saber/files/saberspecround3.pdf#page=26.51) specification."
+
     assert len(bs) % 32 == 0, "The length of the byte string should be a multiple of 256 bits."
     k = len(bs) // 32
     N = 2**k
@@ -104,6 +44,8 @@ def bs2pol(bs: bytes) -> Polynomial:
 
 
 def pol2bs(pin: Polynomial) -> bytes:
+    "Algorithm 10 from the [SABER](https://www.esat.kuleuven.be/cosic/pqcrypto/saber/files/saberspecround3.pdf#page=26.51) specification."
+
     N = pin.N
     k = int(np.log2(N))
     bit_string = np.zeros(k * 256, dtype=int)
@@ -114,6 +56,8 @@ def pol2bs(pin: Polynomial) -> bytes:
 
 
 def bs2polvec(bs: bytes, l: int) -> List[Polynomial]:
+    "Algorithm 11 from the [SABER](https://www.esat.kuleuven.be/cosic/pqcrypto/saber/files/saberspecround3.pdf#page=26.51) specification."
+
     assert len(bs) % 32 == 0, "The length of the byte string should be a multiple of 256 bits."
     k = (len(bs) // 32) // l
     v = list()
@@ -123,8 +67,65 @@ def bs2polvec(bs: bytes, l: int) -> List[Polynomial]:
 
 
 def polvec2bs(v: List[Polynomial]) -> bytes:
+    "Algorithm 12 from the [SABER](https://www.esat.kuleuven.be/cosic/pqcrypto/saber/files/saberspecround3.pdf#page=26.51) specification."
+
     l = len(v)
     bss = list()
     for i in range(l - 1, -1, -1):
         bss.append(pol2bs(v[i]))
     return b''.join(bss)
+
+
+def hamming_weight(a: np.ndarray) -> int:
+    "'HammingWeight' supporting function from the [SABER](https://www.esat.kuleuven.be/cosic/pqcrypto/saber/files/saberspecround3.pdf#page=28.71) specification."
+
+    return np.count_nonzero(np.ndarray)
+
+
+def randombytes(saber_seedbytes: int) -> bytes:
+    "'Randombytes' supporting function from the [SABER](https://www.esat.kuleuven.be/cosic/pqcrypto/saber/files/saberspecround3.pdf#page=29.09) specification."
+
+    return token_bytes(saber_seedbytes)
+
+
+def poly_mul(a: Polynomial, b: Polynomial, p: int) -> Polynomial:
+    "'PolyMul' supporting function from the [SABER](https://www.esat.kuleuven.be/cosic/pqcrypto/saber/files/saberspecround3.pdf#page=29.27) specification."
+
+    a_coeffs = a.coeffs
+    b_coeffs = b.coeffs
+    c_coeffs = np.zeros(a.n, dtype=int)
+    for i in range(a.n):
+        c_coeffs[i] = a_coeffs[i] * b_coeffs[i]
+    c = Polynomial(list(c_coeffs), p)
+    return c
+
+
+def matrix_vector_mul(M: List[List[Polynomial]], v: List[Polynomial], q: int) -> List[Polynomial]:
+    "'MatrixVectorMul' supporting function from the [SABER](https://www.esat.kuleuven.be/cosic/pqcrypto/saber/files/saberspecround3.pdf#page=29.49) specification."
+
+    l = len(M)
+    mv = list()
+    for i in range(l):
+        c = Polynomial([], N=q)
+        for j in range(l):
+            c += poly_mul(M[i][j], v[j], q)
+        mv.append(c)
+    return mv
+
+
+def inner_prod(a: List[Polynomial], b: List[Polynomial], p: int) -> Polynomial:
+    "'InnerProd' supporting function from the [SABER](https://www.esat.kuleuven.be/cosic/pqcrypto/saber/files/saberspecround3.pdf#page=30.09) specification."
+
+    l = len(a)
+    c = Polynomial([], N=p)
+    for i in range(l):
+        c += poly_mul(a[i], b[i], p)
+    return c
+
+
+def verify(bs_0: bytes, bs_1: bytes, input_length: int) -> bool:
+    "'Verify' supporting function from the [SABER](https://www.esat.kuleuven.be/cosic/pqcrypto/saber/files/saberspecround3.pdf#page=30.48) specification."
+
+    assert len(bs_0) == len(bs_1), "The byte strings should be of the same length."
+    assert len(bs_0) == input_length, "The length of the byte strings should be equal to the input length."
+    return 1 - int(bs_0 == bs_1)   # the function returns 0 if the byte strings are equal
