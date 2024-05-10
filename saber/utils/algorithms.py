@@ -79,7 +79,7 @@ def polvec2bs(v: List[Polynomial]) -> bytes:
 def hamming_weight(a: np.ndarray) -> int:
     "'HammingWeight' supporting function from the [SABER](https://www.esat.kuleuven.be/cosic/pqcrypto/saber/files/saberspecround3.pdf#page=28.71) specification."
 
-    return np.count_nonzero(np.ndarray)
+    return np.count_nonzero(a)
 
 
 def randombytes(saber_seedbytes: int) -> bytes:
@@ -129,3 +129,37 @@ def verify(bs_0: bytes, bs_1: bytes, input_length: int) -> bool:
     assert len(bs_0) == len(bs_1), "The byte strings should be of the same length."
     assert len(bs_0) == input_length, "The length of the byte strings should be equal to the input length."
     return 1 - int(bs_0 == bs_1)   # the function returns 0 if the byte strings are equal
+
+
+def gen_matrix(seed_a: bytes, l: int, n: int, e_q: int, q: int) -> List[List[Polynomial]]:
+    "'GenMatrix' supporting function from the [SABER](https://www.esat.kuleuven.be/cosic/pqcrypto/saber/files/saberspecround3.pdf#page=30.67) specification."
+
+    A = [[None for _ in range(l)] for _ in range(l)]
+    buf = shake_128(seed_a).digest(l * l * n * e_q // 8)
+    buf = bytes2bits(buf)
+    k = 0
+    for i_1 in range(l):
+        for i_2 in range(l):
+            coeffs = np.zeros(n, dtype=int)
+            for j in range(n):
+                coeffs[j] = bits2int(buf[k*e_q:(k + 1)*e_q])
+                k += 1
+            A[i_1][i_2] = Polynomial(list(coeffs), q)
+    return A
+
+
+def gen_secret(seed_s: bytes, l: int, n: int, mu: int, q: int) -> List[Polynomial]:
+    "'GenSecret' supporting function from the [SABER](https://www.esat.kuleuven.be/cosic/pqcrypto/saber/files/saberspecround3.pdf#page=30.84) specification."
+
+    s = [None for _ in range(l)]
+    buf = shake_128(seed_s).digest(l * n * mu // 8)
+    buf = bytes2bits(buf)
+    k = 0
+    split_len = mu // 2
+    for i in range(l):
+        coeffs = np.zeros(n, dtype=int)
+        for j in range(n):
+            coeffs[j] = hamming_weight(buf[k*split_len:(k + 1)*split_len]) - hamming_weight(buf[(k + 1)*split_len:(k + 2)*split_len])
+            k += 2
+        s[i] = Polynomial(list(coeffs), q)
+    return s
