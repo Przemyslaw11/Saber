@@ -53,3 +53,38 @@ SABER_PUBLICKEYBYTES and SABER_SECRETKEYBYTES respectively. Function from the [S
         SessionKeycca = sha3_256(rk_prime).digest()
 
         return SessionKeycca, CipherTextcca
+
+    def Decaps(self, CipherTextcca: bytes, SecretKeycca: bytes) -> bytes:
+        ''' Returns a secret key by decapsulating the received cipherte. Function from the [SABER](https://www.esat.kuleuven.be/cosic/pqcrypto/saber/files/saberspecround3.pdf#page=29.49) specification.'''
+        z = SecretKeycca[:self.constants["SABER_KEYBYTES"]]
+        hash_pk = SecretKeycca[self.constants["SABER_KEYBYTES"]: self.constants["SABER_KEYBYTES"] + self.constants["SABER_HASHBYTES"]]
+        PublicKeycpa = SecretKeycca[
+            self.constants["SABER_KEYBYTES"] + self.constants["SABER_HASHBYTES"]:
+            self.constants["SABER_KEYBYTES"] +
+            self.constants["SABER_HASHBYTES"] +
+            self.constants["SABER_INDCPA_PUBLICKEYBYTES"]
+        ]
+        SecretKeycpa = SecretKeycca[
+            self.constants["SABER_KEYBYTES"] + self.constants["SABER_HASHBYTES"] +
+            self.constants["SABER_INDCPA_PUBLICKEYBYTES"]:
+        ]
+
+        m = PKE.Dec(CipherTextcca, SecretKeycpa)
+
+        buf = hash_pk + m
+
+        rk = sha3_512(buf + int2bytes(2 * self.constants["SABER_KEYBYTES"], 4)).digest()
+
+        r, k = rk[:self.constants["SABER_KEYBYTES"]], rk[self.constants["SABER_KEYBYTES"]:]
+
+        CipherText_prime_cca = PKE.Enc(m, r, PublicKeycpa)
+
+        c = verify(CipherText_prime_cca, CipherTextcca, self.constants["SABER_BYTES_CCA_DEC"])
+
+        r_prime = sha3_256(r + CipherTextcca + int2bytes(self.constants["SABER_BYTES_CCA_DEC"], 4)).digest()
+
+        temp = r_prime + k if c == 0 else r_prime + z
+
+        SessionKeycca = sha3_256(temp + int2bytes(2 * self.constants["SABER_KEYBYTES"], 4)).digest()
+
+        return SessionKeycca
