@@ -66,3 +66,20 @@ SABER_INDCPA_PUBKEYBYTES and SABER_INDCPA_SECRETKEYBYTES respectively. Function 
         CipherTextcpa = pol2bs(cm_rounded) + polvec2bs(b_rounded)
 
         return CipherTextcpa
+
+    def Dec(self, CipherTextcpa: bytes, SecretKeycpa: bytes) -> bytes:
+        '''Receives generated CipherTextcpa and SecretKeycpa as inputs and computes the decrypted message m. Function from the [SABER](https://www.esat.kuleuven.be/cosic/pqcrypto/saber/files/saberspecround3.pdf#page=29.49) specification'''
+        sss = bs2polvec(SecretKeycpa, self.constants["SABER_L"])
+        cm_rounded = bs2pol(CipherTextcpa[:self.constants["SABER_POLYBYTES"]])
+        b_rounded = bs2polvec(CipherTextcpa[self.constants["SABER_POLYBYTES"]:], self.constants["SABER_L"])
+
+        cm_rounded = shiftleft(cm_rounded, self.constants["SABER_EP"] - self.constants["SABER_ET"])
+
+        v = inner_prod(b_rounded, sss, self.constants["SABER_P"])
+        cm_rounded = shiftright(cm_rounded, self.constants["SABER_EP"] - 1)
+
+        h2 = bs2pol(randombytes(self.constants["SABER_POLYBYTES"]))
+        m_prime = v - cm_rounded + h2 % self.constants["SABER_P"]
+        m = pol2bs(shiftright(m_prime, self.constants["SABER_EP"] - 1))
+
+        return m
