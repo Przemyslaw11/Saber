@@ -1,4 +1,4 @@
-from saber.utils.polynomial import Polynomial
+from utils.polynomial import Polynomial
 from utils.algorithms import *
 from typing import Tuple
 import numpy as np
@@ -6,14 +6,14 @@ import numpy as np
 class PKE:
 
     def __init__(self, **constants):
-        self.keygen = self.KeyGen
-        self.encrypt = self.Enc
-        self.decrypt = self.Dec
         self.constants = constants
 
     def KeyGen(self) -> Tuple[bytes, bytes]:
-        '''Generates public and secret key pair as byte strings of length
-SABER_INDCPA_PUBKEYBYTES and SABER_INDCPA_SECRETKEYBYTES respectively. Function from the [SABER](https://www.esat.kuleuven.be/cosic/pqcrypto/saber/files/saberspecround3.pdf#page=29.49) specification.'''
+        """
+        Generates public and secret key pair as byte strings of length SABER_INDCPA_PUBKEYBYTES and SABER_INDCPA_SECRETKEYBYTES respectively.
+        Function from the [SABER](https://www.esat.kuleuven.be/cosic/pqcrypto/saber/files/saberspecround3.pdf#page=32.20) specification.
+        """
+
         seedAAA = randombytes(self.constants["SABER_SEEDBYTES"])
         seedAAA = shake_128(seedAAA).digest(self.constants["SABER_SEEDBYTES"])
         seedsss = randombytes(self.constants["SABER_NOISE_SEEDBYTES"])
@@ -40,8 +40,11 @@ SABER_INDCPA_PUBKEYBYTES and SABER_INDCPA_SECRETKEYBYTES respectively. Function 
         return PublicKeycpa, SecretKeycpa
 
     def Enc(self, m: bytes, seedsss: bytes, PublicKeycpa: bytes) -> bytes:
-        '''Receives a 256-bit message m, a random seed of length SABER SEEDBYTES
-        and the public key PublicKeycpa as the inputs and computes the corresponding ciphertext CipherTextcpa. Function from the [SABER](https://www.esat.kuleuven.be/cosic/pqcrypto/saber/files/saberspecround3.pdf#page=29.49) specification.'''
+        """
+        Receives a 256-bit message m, a random seed of length SABER SEEDBYTES and the public key PublicKeycpa as the inputs and computes the corresponding ciphertext CipherTextcpa.
+        Function from the [SABER](https://www.esat.kuleuven.be/cosic/pqcrypto/saber/files/saberspecround3.pdf#page=32.67) specification.
+        """
+
         seedAAA, pk = PublicKeycpa[:self.constants["SABER_SEEDBYTES"]], PublicKeycpa[self.constants["SABER_SEEDBYTES"]:]
         AAA = gen_matrix(seedAAA, self.constants["SABER_L"], self.constants["SABER_L"],
                          self.constants["SABER_EQ"], self.constants["SABER_ET"])
@@ -68,7 +71,11 @@ SABER_INDCPA_PUBKEYBYTES and SABER_INDCPA_SECRETKEYBYTES respectively. Function 
         return CipherTextcpa
 
     def Dec(self, CipherTextcpa: bytes, SecretKeycpa: bytes) -> bytes:
-        '''Receives generated CipherTextcpa and SecretKeycpa as inputs and computes the decrypted message m. Function from the [SABER](https://www.esat.kuleuven.be/cosic/pqcrypto/saber/files/saberspecround3.pdf#page=29.49) specification'''
+        """
+        Receives generated CipherTextcpa and SecretKeycpa as inputs and computes the decrypted message m.
+        Function from the [SABER](https://www.esat.kuleuven.be/cosic/pqcrypto/saber/files/saberspecround3.pdf#page=32.79) specification
+        """
+
         sss = bs2polvec(SecretKeycpa, self.constants["SABER_L"])
         cm_rounded = bs2pol(CipherTextcpa[:self.constants["SABER_POLYBYTES"]])
         b_rounded = bs2polvec(CipherTextcpa[self.constants["SABER_POLYBYTES"]:], self.constants["SABER_L"])
