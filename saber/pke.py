@@ -33,11 +33,11 @@ class PKE:
         seed_s = randombytes(self.constants["SABER_NOISE_SEEDBYTES"])
         A = gen_matrix(seed_A, self.l, self.n, self.constants["SABER_EQ"])
         s = gen_secret(seed_s, self.l, self.n, self.constants["SABER_MU"], self.q)
-        b = matrix_vector_mul(transpose_matrix(A), s, 2**self.constants["SABER_EQ"])
+        b = matrix_vector_mul(transpose_matrix(A), s, self.q)
         b = [b[i] + self.h[i] for i in range(self.l)]
-        b_p = [shiftright(poly, self.constants["SABER_EQ"] - self.constants["SABER_EP"]) for poly in b]
-        SecretKey_cpa = polvec2bs(s)
-        pk = polvec2bs(b_p)
+        b_p = [shiftright(poly, self.constants["SABER_EQ"] - self.constants["SABER_EP"]) % self.p for poly in b]
+        SecretKey_cpa = polvec2bs(s, self.q)
+        pk = polvec2bs(b_p, self.p)
         PublicKey_cpa = seed_A + pk
 
         return PublicKey_cpa, SecretKey_cpa
@@ -55,13 +55,13 @@ class PKE:
         s_prime = gen_secret(seed_s_prime, self.l, self.n, self.constants["SABER_MU"], self.q)
         b_prime = matrix_vector_mul(A, s_prime, self.q)
         b_prime = [b_prime[i] + self.h[i] for i in range(self.l)]
-        b_prime = [shiftright(poly, self.constants["SABER_EQ"] - self.constants["SABER_EP"]) for poly in b_prime]
+        b_prime = [shiftright(poly, self.constants["SABER_EQ"] - self.constants["SABER_EP"]) % self.p  for poly in b_prime]
         b = bs2polvec(pk, self.l)
         v_prime = inner_prod(b, [poly % self.p for poly in s_prime], self.p)
         m_p = bs2pol(m)
         m_p = shiftleft(m_p, self.constants["SABER_EP"] - 1)
         c_m = shiftright(v_prime - (m_p % self.p) + (self.h1 % self.p), self.constants["SABER_EP"] - self.constants["SABER_ET"])
-        CipherText_cpa = pol2bs(c_m % self.t) + polvec2bs([poly % self.p for poly in b_prime])
+        CipherText_cpa = pol2bs(c_m % self.t, self.t) + polvec2bs(b_prime, self.p)
 
         return CipherText_cpa
 
@@ -78,6 +78,6 @@ class PKE:
         b_prime = bs2polvec(c_t, self.l)
         v = inner_prod(b_prime, [poly % self.p for poly in s], self.p)
         m_prime = shiftright(v - c_m % self.p + self.h2 % self.p, self.constants["SABER_EP"] - 1)
-        m = pol2bs(m_prime % 2)
+        m = pol2bs(m_prime % 2, 2)
 
         return m

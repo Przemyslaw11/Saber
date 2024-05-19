@@ -43,10 +43,11 @@ def bs2pol(bs: bytes) -> Polynomial:
     return Polynomial(list(coeffs), N)
 
 
-def pol2bs(pin: Polynomial) -> bytes:
+def pol2bs(pin: Polynomial, N: int) -> bytes:
     "Algorithm 10 from the [SABER](https://www.esat.kuleuven.be/cosic/pqcrypto/saber/files/saberspecround3.pdf#page=26.51) specification."
 
-    N = pin.N
+    assert pin.N == N, "The polynomial modulus is incorrect."
+
     k = int(np.log2(N))
     bit_string = np.zeros(k * 256, dtype=int)
     for i in range(256):
@@ -66,13 +67,15 @@ def bs2polvec(bs: bytes, l: int) -> List[Polynomial]:
     return v
 
 
-def polvec2bs(v: List[Polynomial]) -> bytes:
+def polvec2bs(v: List[Polynomial], N: int) -> bytes:
     "Algorithm 12 from the [SABER](https://www.esat.kuleuven.be/cosic/pqcrypto/saber/files/saberspecround3.pdf#page=26.51) specification."
+
+    assert v[0].N == N, "The polynomial modulus is incorrect."
 
     l = len(v)
     bss = list()
     for i in range(l - 1, -1, -1):
-        bss.append(pol2bs(v[i]))
+        bss.append(pol2bs(v[i], N))
     return b''.join(bss)
 
 
