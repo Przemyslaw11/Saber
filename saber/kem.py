@@ -6,8 +6,8 @@ from typing import Tuple
 class KEM:
     
     def __init__(self, **constants):
-        self.pke = PKE(**constants)
         self.constants = constants
+        self.pke = PKE(**self.constants)
 
     def KeyGen(self) -> Tuple[bytes, bytes]:
         """

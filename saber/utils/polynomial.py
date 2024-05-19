@@ -19,6 +19,8 @@ class Polynomial():
                 input_coeffs[key] = value
         elif isinstance(coeffs, list):
             input_coeffs = np.array(coeffs)
+        else:
+            raise ValueError("The input should be a dictionary or a list of coefficients.")
 
         # Set the coefficients
         self._set_coeffs(input_coeffs)
@@ -33,9 +35,9 @@ class Polynomial():
         r = np.poly1d(r.c % self.N)
 
         # Store the coefficients
-        self.coeffs = np.zeros(self.n, dtype=int)
+        self.coeffs = list(np.zeros(self.n, dtype=int))
         for i, c in enumerate(np.flip(r.c)):
-            self.coeffs[i] = c
+            self.coeffs[i] = int(c)
         
         # Set the polynomial
         self.np_poly1d = np.poly1d(np.flip(self.coeffs))
@@ -51,6 +53,20 @@ class Polynomial():
         for i in range(self.n):
             result_coeffs[i] = (self.coeffs[i] + other_coeffs[i])
         return Polynomial(list(result_coeffs), self.N)
+    
+    def __sub__(self, other: 'Polynomial') -> 'Polynomial':
+        assert self.N == other.N, "The moduli of the polynomials should be the same."
+        other_coeffs = other.coeffs
+        result_coeffs = np.zeros(self.n, dtype=int)
+        for i in range(self.n):
+            result_coeffs[i] = (self.coeffs[i] - other_coeffs[i])
+        return Polynomial(list(result_coeffs), self.N)
+    
+    def __mod__(self, N) -> 'Polynomial':
+        result_coeffs = np.zeros(self.n, dtype=int)
+        for i in range(self.n):
+            result_coeffs[i] = self.coeffs[i] % N
+        return Polynomial(list(result_coeffs), N)
     
     def __str__(self) -> str:
         return str(self.np_poly1d)

@@ -131,9 +131,10 @@ def verify(bs_0: bytes, bs_1: bytes, input_length: int) -> bool:
     return 1 - int(bs_0 == bs_1)   # the function returns 0 if the byte strings are equal
 
 
-def gen_matrix(seed_a: bytes, l: int, n: int, e_q: int, q: int) -> List[List[Polynomial]]:
+def gen_matrix(seed_a: bytes, l: int, n: int, e_q: int) -> List[List[Polynomial]]:
     "'GenMatrix' supporting function from the [SABER](https://www.esat.kuleuven.be/cosic/pqcrypto/saber/files/saberspecround3.pdf#page=30.67) specification."
 
+    q = 2**e_q
     A = [[None for _ in range(l)] for _ in range(l)]
     buf = shake_128(seed_a).digest(l * l * n * e_q // 8)
     buf = bytes2bits(buf)
@@ -163,3 +164,11 @@ def gen_secret(seed_s: bytes, l: int, n: int, mu: int, q: int) -> List[Polynomia
             k += 2
         s[i] = Polynomial(list(coeffs), q)
     return s
+
+
+# ================================================================
+# The following functions are not part of the SABER specification,
+# but are useful for the clean implementation of the algorithm.
+
+def transpose_matrix(matrix: List[List[Polynomial]]) -> List[List[Polynomial]]:
+    return [list(i) for i in zip(*matrix)]

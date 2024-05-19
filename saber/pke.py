@@ -7,6 +7,20 @@ class PKE:
 
     def __init__(self, **constants):
         self.constants = constants
+        self.n = self.constants["SABER_N"]
+        self.l = self.constants["SABER_L"]
+        self.q = 2**self.constants["SABER_EQ"]
+        self.p = 2**self.constants["SABER_EP"]
+        self.t = 2**self.constants["SABER_ET"]
+        self.h1 = Polynomial([
+            2**(self.constants["SABER_EQ"] - self.constants["SABER_EP"] - 1)
+        ] * self.constants["SABER_N"], self.q)
+        self.h2 = Polynomial([
+            2**(self.constants["SABER_EP"] - 2) -\
+            2**(self.constants["SABER_EP"] - self.constants["SABER_ET"] - 1) +\
+            2**(self.constants["SABER_EQ"] - self.constants["SABER_EP"] - 1)
+        ] * self.constants["SABER_N"], self.q)
+        self.h = [self.h1 for _ in range(self.constants["SABER_L"])]
 
     def KeyGen(self) -> Tuple[bytes, bytes]:
         """
@@ -14,79 +28,56 @@ class PKE:
         Function from the [SABER](https://www.esat.kuleuven.be/cosic/pqcrypto/saber/files/saberspecround3.pdf#page=32.20) specification.
         """
 
-        seedAAA = randombytes(self.constants["SABER_SEEDBYTES"])
-        seedAAA = shake_128(seedAAA).digest(self.constants["SABER_SEEDBYTES"])
-        seedsss = randombytes(self.constants["SABER_NOISE_SEEDBYTES"])
+        seed_A = randombytes(self.constants["SABER_SEEDBYTES"])
+        seed_A = shake_128(seed_A).digest(self.constants["SABER_SEEDBYTES"])
+        seed_s = randombytes(self.constants["SABER_NOISE_SEEDBYTES"])
+        A = gen_matrix(seed_A, self.l, self.n, self.constants["SABER_EQ"])
+        s = gen_secret(seed_s, self.l, self.n, self.constants["SABER_MU"], self.q)
+        b = matrix_vector_mul(transpose_matrix(A), s, 2**self.constants["SABER_EQ"])
+        b = [b[i] + self.h[i] for i in range(self.l)]
+        b_p = [shiftright(poly, self.constants["SABER_EQ"] - self.constants["SABER_EP"]) for poly in b]
+        SecretKey_cpa = polvec2bs(s)
+        pk = polvec2bs(b_p)
+        PublicKey_cpa = seed_A + pk
 
-        AAA = gen_matrix(seedAAA, self.constants["SABER_L"], self.constants["SABER_L"],
-                         self.constants["SABER_EQ"], self.constants["SABER_ET"])
-        sss = gen_secret(seedsss, self.constants["SABER_L"], self.constants["SABER_L"],
-                         self.constants["SABER_EP"], self.constants["SABER_ET"])
+        return PublicKey_cpa, SecretKey_cpa
 
-        AAAT = [list(i) for i in zip(*AAA)]
-        bbb = matrix_vector_mul(AAAT, sss, self.constants["SABER_EQ"])
-
-        hhh_coeffs = np.random.randint(0, self.constants["SABER_L"], self.constants["SABER_L"])
-        hhh = [Polynomial(hhh_coeffs[i], self.constants["SABER_L"]) for i in range(self.constants["SABER_L"])]
-        bbb = [(bbb[i] + hhh[i]) % self.constants["SABER_Q"] for i in range(self.constants["SABER_L"])]
-
-        bbbp = [shiftright(poly, self.constants["SABER_EQ"] - self.constants["SABER_EP"]) for poly in bbb]
-
-        SecretKeycpa = polvec2bs(sss)
-        pk = polvec2bs(bbbp)
-
-        PublicKeycpa = seedAAA + pk
-
-        return PublicKeycpa, SecretKeycpa
-
-    def Enc(self, m: bytes, seedsss: bytes, PublicKeycpa: bytes) -> bytes:
+    def Enc(self, m: bytes, seed_s_prime: bytes, PublicKey_cpa: bytes) -> bytes:
         """
-        Receives a 256-bit message m, a random seed of length SABER SEEDBYTES and the public key PublicKeycpa as the inputs and computes the corresponding ciphertext CipherTextcpa.
+        Receives a 256-bit message m, a random seed of length SABER SEEDBYTES and the public key PublicKey_cpa as the inputs and computes the corresponding ciphertext CipherTextcpa.
         Function from the [SABER](https://www.esat.kuleuven.be/cosic/pqcrypto/saber/files/saberspecround3.pdf#page=32.67) specification.
         """
 
-        seedAAA, pk = PublicKeycpa[:self.constants["SABER_SEEDBYTES"]], PublicKeycpa[self.constants["SABER_SEEDBYTES"]:]
-        AAA = gen_matrix(seedAAA, self.constants["SABER_L"], self.constants["SABER_L"],
-                         self.constants["SABER_EQ"], self.constants["SABER_ET"])
-        s_prime = gen_secret(seedsss, self.constants["SABER_L"], self.constants["SABER_L"],
-                             self.constants["SABER_EP"], self.constants["SABER_ET"])
-        b_prime = matrix_vector_mul(AAA, s_prime, self.constants["SABER_Q"])
+        assert len(m) == 32, "The message encrypted with PKE should be of length 256 bits (32 bytes)."
 
-        h = bs2pol(randombytes(self.constants["SABER_POLYBYTES"]))
-        for i in range(self.constants["SABER_L"]):
-            b_prime[i] += h
+        seed_A, pk = PublicKey_cpa[:self.constants["SABER_SEEDBYTES"]], PublicKey_cpa[self.constants["SABER_SEEDBYTES"]:]
+        A = gen_matrix(seed_A, self.l, self.n, self.constants["SABER_EQ"])
+        s_prime = gen_secret(seed_s_prime, self.l, self.n, self.constants["SABER_MU"], self.q)
+        b_prime = matrix_vector_mul(A, s_prime, self.q)
+        b_prime = [b_prime[i] + self.h[i] for i in range(self.l)]
+        b_prime = [shiftright(poly, self.constants["SABER_EQ"] - self.constants["SABER_EP"]) for poly in b_prime]
+        b = bs2polvec(pk, self.l)
+        v_prime = inner_prod(b, [poly % self.p for poly in s_prime], self.p)
+        m_p = bs2pol(m)
+        m_p = shiftleft(m_p, self.constants["SABER_EP"] - 1)
+        c_m = shiftright(v_prime - (m_p % self.p) + (self.h1 % self.p), self.constants["SABER_EP"] - self.constants["SABER_ET"])
+        CipherText_cpa = pol2bs(c_m % self.t) + polvec2bs([poly % self.p for poly in b_prime])
 
-        b_rounded = [shiftright(poly, self.constants["SABER_EQ"] - self.constants["SABER_EP"]) for poly in b_prime]
+        return CipherText_cpa
 
-        mp = bs2pol(m)
-        mp_shifted = shiftleft(mp, self.constants["SABER_EP"] - 1)
-
-        cm = inner_prod(bs2polvec(pk, self.constants["SABER_L"]), s_prime, self.constants["SABER_P"])
-        h1 = bs2pol(randombytes(self.constants["SABER_POLYBYTES"]))
-        cm = cm - mp_shifted + h1 % self.constants["SABER_P"]
-        cm_rounded = shiftright(cm, self.constants["SABER_EP"] - self.constants["SABER_ET"])
-
-        CipherTextcpa = pol2bs(cm_rounded) + polvec2bs(b_rounded)
-
-        return CipherTextcpa
-
-    def Dec(self, CipherTextcpa: bytes, SecretKeycpa: bytes) -> bytes:
+    def Dec(self, CipherText_cpa: bytes, SecretKey_cpa: bytes) -> bytes:
         """
-        Receives generated CipherTextcpa and SecretKeycpa as inputs and computes the decrypted message m.
+        Receives generated CipherText_cpa and SecretKey_cpa as inputs and computes the decrypted message m.
         Function from the [SABER](https://www.esat.kuleuven.be/cosic/pqcrypto/saber/files/saberspecround3.pdf#page=32.79) specification
         """
 
-        sss = bs2polvec(SecretKeycpa, self.constants["SABER_L"])
-        cm_rounded = bs2pol(CipherTextcpa[:self.constants["SABER_POLYBYTES"]])
-        b_rounded = bs2polvec(CipherTextcpa[self.constants["SABER_POLYBYTES"]:], self.constants["SABER_L"])
-
-        cm_rounded = shiftleft(cm_rounded, self.constants["SABER_EP"] - self.constants["SABER_ET"])
-
-        v = inner_prod(b_rounded, sss, self.constants["SABER_P"])
-        cm_rounded = shiftright(cm_rounded, self.constants["SABER_EP"] - 1)
-
-        h2 = bs2pol(randombytes(self.constants["SABER_POLYBYTES"]))
-        m_prime = v - cm_rounded + h2 % self.constants["SABER_P"]
-        m = pol2bs(shiftright(m_prime, self.constants["SABER_EP"] - 1))
+        s = bs2polvec(SecretKey_cpa, self.l)
+        c_m, c_t = CipherText_cpa[:32*self.constants["SABER_ET"]], CipherText_cpa[32*self.constants["SABER_ET"]:]
+        c_m = bs2pol(c_m)
+        c_m = shiftleft(c_m, self.constants["SABER_EP"] - self.constants["SABER_ET"])
+        b_prime = bs2polvec(c_t, self.l)
+        v = inner_prod(b_prime, [poly % self.p for poly in s], self.p)
+        m_prime = shiftright(v - c_m % self.p + self.h2 % self.p, self.constants["SABER_EP"] - 1)
+        m = pol2bs(m_prime % 2)
 
         return m

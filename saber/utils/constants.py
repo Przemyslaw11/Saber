@@ -11,7 +11,8 @@ CONSTANTS_LIGHT_SABER = {
     "SABER_INDCPA SECRETKEYBYTES":  832,
     "SABER_PUBLICKEYBYTES":         672,
     "SABER_SECRETKEYBYTES":         1568,
-    "SABER_BYTES_CCA_DEC":          736
+    "SABER_BYTES_CCA_DEC":          736,
+    "SABER_N":                      256,
 }
 
 CONSTANTS_SABER = {
@@ -27,7 +28,8 @@ CONSTANTS_SABER = {
     "SABER_INDCPA SECRETKEYBYTES":  1248,
     "SABER_PUBLICKEYBYTES":         992,
     "SABER_SECRETKEYBYTES":         2304,
-    "SABER_BYTES_CCA_DEC":          1088
+    "SABER_BYTES_CCA_DEC":          1088,
+    "SABER_N":                      256,
 }
 
 CONSTANTS_FIRE_SABER = {
@@ -43,7 +45,8 @@ CONSTANTS_FIRE_SABER = {
     "SABER_INDCPA SECRETKEYBYTES":  1664,
     "SABER_PUBLICKEYBYTES":         1312,
     "SABER_SECRETKEYBYTES":         3040,
-    "SABER_BYTES_CCA_DEC":          1472
+    "SABER_BYTES_CCA_DEC":          1472,
+    "SABER_N":                      256,
 }
 
 CONSTANTS_MAP = {
