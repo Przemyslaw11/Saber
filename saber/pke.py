@@ -59,7 +59,7 @@ class PKE:
         b = bs2polvec(pk, self.l)
         v_prime = inner_prod(b, [poly % self.p for poly in s_prime], self.p)
         m_p = bs2pol(m)
-        m_p = shiftleft(m_p, self.constants["SABER_EP"] - 1)
+        m_p = shiftleft(m_p % self.p, self.constants["SABER_EP"] - 1)
         c_m = shiftright(v_prime - (m_p % self.p) + (self.h1 % self.p), self.constants["SABER_EP"] - self.constants["SABER_ET"])
         CipherText_cpa = pol2bs(c_m % self.t, self.t) + polvec2bs(b_prime, self.p)
 
@@ -74,7 +74,7 @@ class PKE:
         s = bs2polvec(SecretKey_cpa, self.l)
         c_m, c_t = CipherText_cpa[:32*self.constants["SABER_ET"]], CipherText_cpa[32*self.constants["SABER_ET"]:]
         c_m = bs2pol(c_m)
-        c_m = shiftleft(c_m, self.constants["SABER_EP"] - self.constants["SABER_ET"])
+        c_m = shiftleft(c_m % self.p, self.constants["SABER_EP"] - self.constants["SABER_ET"])
         b_prime = bs2polvec(c_t, self.l)
         v = inner_prod(b_prime, [poly % self.p for poly in s], self.p)
         m_prime = shiftright(v - c_m % self.p + self.h2 % self.p, self.constants["SABER_EP"] - 1)
