@@ -18,4 +18,4 @@ The implementation is based on the SABER specification document, esspecially rel
 1. Install the `saber` package:  
     `pip install -e .`
 
-# Project structure
+2. Play with the use cases located in the `/saber/usecases.ipynb` notebook [file](https://github.com/Przemyslaw11/Cryptography_project_2024/blob/main/saber/usecases.ipynb).
