@@ -19,7 +19,6 @@ class KEM:
 
         hash_pk = sha3_256(PublicKeycpa).digest()
         hash_input = hash_pk + PublicKeycpa[:self.constants["SABER_INDCPA_PUBLICKEYBYTES"]]
-        hash_pk = sha3_256(hash_input).digest()
 
         z = randombytes(self.constants["SABER_KEYBYTES"])
 
@@ -39,8 +38,6 @@ class KEM:
         m = sha3_256(m).digest()
 
         hash_pk = sha3_256(PublicKeycca).digest()
-        hash_input = hash_pk + PublicKeycca[:self.constants["SABER_INDCPA_PUBLICKEYBYTES"]]
-        hash_pk = sha3_256(hash_input).digest()
 
         buf = hash_pk + m
 
@@ -50,8 +47,7 @@ class KEM:
 
         CipherTextcca = self.pke.Enc(m, r, PublicKeycca)
 
-        hash_input_2 = r + CipherTextcca + int2bytes(self.constants["SABER_BYTES_CCA_DEC"], 4)
-        r_prime = sha3_256(hash_input_2).digest()
+        r_prime = sha3_256(CipherTextcca).digest()
 
         rk_prime = r_prime + k
 
@@ -82,7 +78,7 @@ class KEM:
 
         buf = hash_pk + m
 
-        rk = sha3_512(buf + int2bytes(2 * self.constants["SABER_KEYBYTES"], 4)).digest()
+        rk = sha3_512(buf).digest()
 
         r, k = rk[:self.constants["SABER_KEYBYTES"]], rk[self.constants["SABER_KEYBYTES"]:]
 
@@ -90,10 +86,10 @@ class KEM:
 
         c = verify(CipherText_prime_cca, CipherTextcca, self.constants["SABER_BYTES_CCA_DEC"])
 
-        r_prime = sha3_256(r + CipherTextcca + int2bytes(self.constants["SABER_BYTES_CCA_DEC"], 4)).digest()
+        r_prime = sha3_256(CipherTextcca).digest()
 
         temp = r_prime + k if c == 0 else r_prime + z
 
-        SessionKeycca = sha3_256(temp + int2bytes(2 * self.constants["SABER_KEYBYTES"], 4)).digest()
+        SessionKeycca = sha3_256(temp).digest()
 
         return SessionKeycca
