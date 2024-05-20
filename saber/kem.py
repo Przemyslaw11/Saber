@@ -1,7 +1,6 @@
-from utils.binary_utils import int2bytes
 from utils.algorithms import *
-from pke import PKE
 from typing import Tuple
+from pke import PKE
 
 class KEM:
     
@@ -65,10 +64,6 @@ class KEM:
         CipherText_prime_cca = self.pke.Enc(m, r, PublicKey_cpa)
         c = verify(CipherText_prime_cca, CipherText_cca, self.constants["SABER_BYTES_CCA_DEC"])
         r_prime = sha3_256(CipherText_cca).digest()
-        if c == 0:
-            temp = r_prime + k
-        else:
-            temp = r_prime + z
-        SessionKey_cca = sha3_256(temp).digest()
+        SessionKey_cca = sha3_256((r_prime + k) if c == 0 else (r_prime + z)).digest()
 
         return SessionKey_cca

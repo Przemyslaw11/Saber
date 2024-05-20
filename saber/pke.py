@@ -1,7 +1,6 @@
 from utils.polynomial import Polynomial
 from utils.algorithms import *
 from typing import Tuple
-import numpy as np
 
 class PKE:
 
