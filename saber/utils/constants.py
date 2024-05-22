@@ -12,7 +12,10 @@ CONSTANTS_LIGHT_SABER = {
     "SABER_PUBLICKEYBYTES":         672,
     "SABER_SECRETKEYBYTES":         1568,
     "SABER_BYTES_CCA_DEC":          736,
+
+    # Additional parameters, apart from table 8 (https://www.esat.kuleuven.be/cosic/pqcrypto/saber/files/saberspecround3.pdf#page=22.95)
     "SABER_N":                      256,
+    "SABER_MU":                     4,
 }
 
 CONSTANTS_SABER = {
@@ -29,7 +32,10 @@ CONSTANTS_SABER = {
     "SABER_PUBLICKEYBYTES":         992,
     "SABER_SECRETKEYBYTES":         2304,
     "SABER_BYTES_CCA_DEC":          1088,
+
+    # Additional parameters, apart from table 8 (https://www.esat.kuleuven.be/cosic/pqcrypto/saber/files/saberspecround3.pdf#page=22.95)
     "SABER_N":                      256,
+    "SABER_MU":                     4,
 }
 
 CONSTANTS_FIRE_SABER = {
@@ -46,7 +52,10 @@ CONSTANTS_FIRE_SABER = {
     "SABER_PUBLICKEYBYTES":         1312,
     "SABER_SECRETKEYBYTES":         3040,
     "SABER_BYTES_CCA_DEC":          1472,
+
+    # Additional parameters, apart from table 8 (https://www.esat.kuleuven.be/cosic/pqcrypto/saber/files/saberspecround3.pdf#page=22.95)
     "SABER_N":                      256,
+    "SABER_MU":                     4,
 }
 
 CONSTANTS_MAP = {
