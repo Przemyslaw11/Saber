@@ -1,6 +1,6 @@
 # Cryptography_project_2024
 
-It is a repository with the source code and materials for the project of the 2024 class of the *Cryptography methods in data science* course at the AGH University of Krakow. The scope of the project is to implement the post-quantum [SABER](https://www.esat.kuleuven.be/cosic/pqcrypto/saber/index.html) algorithm in a high-level programming language - Python.
+It is a repository with the source code, [report](https://github.com/Przemyslaw11/Saber/blob/main/report.pdf), and materials for the project of the 2024 class of the *Cryptography methods in data science* course at the AGH University of Krakow. The scope of the project is to implement the post-quantum [SABER](https://www.esat.kuleuven.be/cosic/pqcrypto/saber/index.html) algorithm in a high-level programming language - Python.
 
 The implementation is based on the SABER specification document, esspecially relevant sections are:
 - [Section 2](https://www.esat.kuleuven.be/cosic/pqcrypto/saber/files/saberspecround3.pdf#page=7.37): General algorithm specification,
